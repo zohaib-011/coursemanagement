@@ -28,7 +28,7 @@
 **Minimum SDK:** 27 (Android 8.1)  
 **Target SDK:** 35  
 **Compile SDK:** 36  
-**Language:** Kotlin  
+**Language:** Java  
 **Architecture:** Single Activity with Multiple Fragments  
 **Database:** Firebase Realtime Database  
 
@@ -43,30 +43,23 @@ This is a Course Management application that allows users to:
 
 ## Project Structure
 
-```
+``` 
 CourseManagement/
 ├── app/
 │   ├── src/main/
 │   │   ├── java/com/example/coursemanagement/
-│   │   │   ├── MainActivity.kt                    # Main entry point
+│   │   │   ├── MainActivity.java                  # Main entry point
 │   │   │   ├── adapter/
-│   │   │   │   └── CourseAdapter.kt               # RecyclerView adapter
+│   │   │   │   └── CourseAdapter.java             # RecyclerView adapter
 │   │   │   ├── model/
-│   │   │   │   └── Course.kt                      # Data class for Course
+│   │   │   │   └── Course.java                    # Data model for Course
 │   │   │   ├── repository/
-│   │   │   │   └── CourseRepository.kt            # Firebase database operations
+│   │   │   │   └── CourseRepository.java          # Firebase database operations
 │   │   │   └── ui/
-│   │   │       ├── AddCourseFragment.kt           # Add course screen
-│   │   │       ├── EditCourseFragment.kt          # Edit course screen
-│   │   │       ├── home/
-│   │   │       │   ├── HomeFragment.kt            # Main screen with course list
-│   │   │       │   └── HomeViewModel.kt           # ViewModel for home
-│   │   │       ├── dashboard/
-│   │   │       │   ├── DashboardFragment.kt       # Dashboard screen
-│   │   │       │   └── DashboardViewModel.kt      # ViewModel for dashboard
-│   │   │       └── notifications/
-│   │   │           ├── NotificationsFragment.kt   # Notifications screen
-│   │   │           └── NotificationsViewModel.kt  # ViewModel for notifications
+│   │   │       ├── AddCourseFragment.java         # Add course screen
+│   │   │       ├── EditCourseFragment.java        # Edit course screen
+│   │   │       └── home/
+│   │   │           └── HomeFragment.java          # Main screen with course list
 │   │   ├── res/
 │   │   │   ├── layout/                            # All XML layout files
 │   │   │   ├── values/                            # Colors, strings, themes
@@ -551,31 +544,47 @@ MaterialCardView (margin: 8dp, corner: 12dp, stroke: gray 1dp)
 
 ## Data Model
 
-### Course.kt - Data Class
-```kotlin
-package com.example.coursemanagement.model
+### Course.java - Model Class
+```java
+package com.example.coursemanagement.model;
 
-data class Course(
-    var id: String = "",                           // Firebase auto-generated key
-    var courseName: String = "",                   // e.g., "Data Structures"
-    var courseCode: String = "",                   // e.g., "CS-201"
-    var creditHours: Int = 0,                      // e.g., 3
-    var courseType: String = "",                   // "Lab" or "Theory"
-    var timestamp: Long = System.currentTimeMillis() // For sorting by date
-) {
+public class Course {
+
+    private String id;             // Firebase auto-generated key
+    private String courseName;     // e.g., "Data Structures"
+    private String courseCode;     // e.g., "CS-201"
+    private int creditHours;       // e.g., 3
+    private String courseType;     // "Lab" or "Theory"
+    private long timestamp;        // For sorting by date
+
     // Firebase requires a no-argument constructor for deserialization
-    constructor() : this("", "", "", 0, "", System.currentTimeMillis())
+    public Course() {
+        this("", "", "", 0, "", System.currentTimeMillis());
+    }
+
+    public Course(String id,
+                  String courseName,
+                  String courseCode,
+                  int creditHours,
+                  String courseType,
+                  long timestamp) {
+        this.id = id != null ? id : "";
+        this.courseName = courseName != null ? courseName : "";
+        this.courseCode = courseCode != null ? courseCode : "";
+        this.creditHours = creditHours;
+        this.courseType = courseType != null ? courseType : "";
+        this.timestamp = timestamp;
+    }
+
+    // Getters and setters (used by Firebase and UI)
+    // ... (see Course.java in the project for full implementation)
 }
 ```
 
 **Why No-Arg Constructor?**
 Firebase Realtime Database uses reflection to create objects from data. It requires:
-1. A no-argument constructor (empty constructor)
-2. Properties must have default values or be `var` (mutable)
-
-**Data Class Features:**
-- `data class` auto-generates: `equals()`, `hashCode()`, `toString()`, `copy()`
-- `copy()` is used in EditCourseFragment to create modified version
+1. A public no-argument constructor (empty constructor)
+2. Public getters/setters for fields so it can read/write values
 
 ---
 
@@ -608,34 +617,19 @@ Firebase Realtime Database uses reflection to create objects from data. It requi
 }
 ```
 
-### Firebase Initialization (MainActivity.kt)
-```kotlin
-class MainActivity : AppCompatActivity() {
-    override fun onCreate(savedInstanceState: Bundle?) {
-        super.onCreate(savedInstanceState)
-        initializeFirebase()
-        setupUI()
-    }
-    
-    private fun initializeFirebase() {
-        // Step 1: Initialize Firebase App
-        FirebaseApp.initializeApp(this)
-        
-        // Step 2: Enable offline persistence (data available offline)
-        FirebaseDatabase.getInstance().setPersistenceEnabled(true)
-    }
-}
-```
+### Firebase Initialization (MainActivity.java)
+In `MainActivity.java` the app:
 
-### CourseRepository.kt - All Firebase Operations
-```kotlin
-class CourseRepository {
-    // Get Firebase Database instance
-    private val database = FirebaseDatabase.getInstance()
-    
-    // Reference to "courses" node in database
-    private val coursesRef = database.getReference("courses")
-```
+- Initializes Firebase with `FirebaseApp.initializeApp(this)`.
+- Enables offline persistence using `FirebaseDatabase.getInstance().setPersistenceEnabled(true)`.
+- Sets up view binding and navigation to host the fragments.
+
+### CourseRepository.java - All Firebase Operations
+`CourseRepository.java` is responsible for:
+
+- Connecting to the `courses` node in Firebase Realtime Database.
+- Adding, updating, deleting, and reading `Course` objects.
+- Exposing simple callback interfaces for success and error handling.
 
 #### Firebase Database Structure
 ```
@@ -657,274 +651,38 @@ coursemanagement-c9024-default-rtdb/
 
 ## CRUD Operations
 
-### 1. CREATE - Adding a Course
-**File:** `CourseRepository.kt` → `addCourse()`
+All CRUD logic is implemented in `CourseRepository.java` and used from the fragments:
 
-```kotlin
-suspend fun addCourse(course: Course): Result<String> {
-    return try {
-        // Validation
-        if (course.courseName.isBlank()) {
-            return Result.failure(Exception("Course name cannot be empty"))
-        }
-        if (course.courseCode.isBlank()) {
-            return Result.failure(Exception("Course code cannot be empty"))
-        }
-        if (course.creditHours <= 0) {
-            return Result.failure(Exception("Credit hours must be greater than 0"))
-        }
-        
-        // Generate unique Firebase key
-        val key = coursesRef.push().key 
-            ?: throw Exception("Failed to generate course ID")
-        
-        // Set the ID and timestamp
-        course.id = key
-        course.timestamp = System.currentTimeMillis()
-        
-        // Save to Firebase - await() suspends until complete
-        coursesRef.child(key).setValue(course).await()
-        
-        Result.success(key)
-    } catch (e: Exception) {
-        Result.failure(Exception("Failed to add course: ${e.message}", e))
-    }
-}
-```
+- **CREATE (Add)**  
+  - Method in `CourseRepository.java`: adds a new `Course` under the `courses` node.  
+  - Called from `AddCourseFragment.java` after validating the form fields.
 
-**How it's called in AddCourseFragment:**
-```kotlin
-private fun addCourse() {
-    // Get input values
-    val courseName = binding.etCourseName.text.toString().trim()
-    val courseCode = binding.etCourseCode.text.toString().trim()
-    val creditHours = binding.etCreditHours.text.toString().toIntOrNull()
-    val courseType = if (binding.rbTheory.isChecked) "Theory" else "Lab"
-    
-    // Create Course object
-    val course = Course(
-        courseName = courseName,
-        courseCode = courseCode,
-        creditHours = creditHours,
-        courseType = courseType
-    )
-    
-    // Launch coroutine to call repository
-    lifecycleScope.launch {
-        val result = courseRepository.addCourse(course)
-        
-        if (result.isSuccess) {
-            Toast.makeText(context, "Course added successfully", Toast.LENGTH_SHORT).show()
-            findNavController().navigateUp()  // Go back to home
-        } else {
-            Toast.makeText(context, "Failed: ${result.exceptionOrNull()?.message}", Toast.LENGTH_LONG).show()
-        }
-    }
-}
-```
+- **READ (List)**  
+  - A `ValueEventListener` in `CourseRepository.java` observes all courses and returns a sorted `List<Course>`.  
+  - Consumed in `HomeFragment.java` to update `CourseAdapter` and show/hide the empty state.
 
----
+- **UPDATE (Edit)**  
+  - Method in `CourseRepository.java`: validates the ID and fields, checks if the course exists, then updates it in Firebase.  
+  - Called from `EditCourseFragment.java` when the user taps the Update button.
 
-### 2. READ - Fetching All Courses
-**File:** `CourseRepository.kt` → `getAllCourses()`
+- **DELETE (Remove)**  
+  - Method in `CourseRepository.java`: verifies the ID, confirms the record exists, then removes it from Firebase.  
+  - Called from `HomeFragment.java` after the user confirms deletion in the dialog.
 
-```kotlin
-fun getAllCourses(): Flow<List<Course>> = callbackFlow {
-    // Create Firebase listener
-    val listener = object : ValueEventListener {
-        override fun onDataChange(snapshot: DataSnapshot) {
-            val courses = mutableListOf<Course>()
-            
-            // Loop through all children (each course)
-            for (courseSnapshot in snapshot.children) {
-                // Convert snapshot to Course object
-                val course = courseSnapshot.getValue(Course::class.java)
-                course?.let {
-                    it.id = courseSnapshot.key ?: ""  // Set the Firebase key as ID
-                    courses.add(it)
-                }
-            }
-            
-            // Sort by timestamp (newest first)
-            val sortedCourses = courses.sortedByDescending { it.timestamp }
-            
-            // Send to UI
-            trySend(sortedCourses)
-        }
-
-        override fun onCancelled(error: DatabaseError) {
-            close(error.toException())  // Close flow with error
-        }
-    }
-    
-    // Attach listener to courses reference
-    coursesRef.addValueEventListener(listener)
-    
-    // Remove listener when flow is cancelled
-    awaitClose { 
-        coursesRef.removeEventListener(listener)
-    }
-}
-```
-
-**How it's observed in HomeFragment:**
-```kotlin
-private fun observeCourses() {
-    lifecycleScope.launch {
-        courseRepository.getAllCourses().collect { courses ->
-            // Submit list to RecyclerView adapter
-            courseAdapter.submitList(courses)
-            
-            // Show/hide empty state
-            if (courses.isEmpty()) {
-                binding.recyclerViewCourses.visibility = View.GONE
-                binding.tvEmptyState.visibility = View.VISIBLE
-            } else {
-                binding.recyclerViewCourses.visibility = View.VISIBLE
-                binding.tvEmptyState.visibility = View.GONE
-            }
-        }
-    }
-}
-```
-
-**Key Concepts:**
-- **Flow** - Kotlin's reactive stream, emits data over time
-- **callbackFlow** - Converts callback-based API to Flow
-- **collect** - Subscribes to Flow and receives emissions
-- **ValueEventListener** - Firebase listener, called on every data change
-
----
-
-### 3. UPDATE - Editing a Course
-**File:** `CourseRepository.kt` → `updateCourse()`
-
-```kotlin
-suspend fun updateCourse(course: Course): Result<Unit> {
-    return try {
-        // Validation
-        if (course.id.isEmpty()) {
-            return Result.failure(Exception("Course ID cannot be empty"))
-        }
-        
-        // Check if course exists
-        val snapshot = coursesRef.child(course.id).get().await()
-        if (!snapshot.exists()) {
-            return Result.failure(Exception("Course not found"))
-        }
-        
-        // Update in Firebase (overwrites all fields)
-        coursesRef.child(course.id).setValue(course).await()
-        
-        Result.success(Unit)
-    } catch (e: Exception) {
-        Result.failure(Exception("Failed to update course: ${e.message}", e))
-    }
-}
-```
-
-**How it's called in EditCourseFragment:**
-```kotlin
-private fun updateCourse() {
-    // Get updated values from form
-    val courseName = binding.etCourseNameEdit.text.toString().trim()
-    val courseCode = binding.etCourseCodeEdit.text.toString().trim()
-    val creditHours = binding.etCreditHoursEdit.text.toString().toIntOrNull()
-    val courseType = if (binding.rbTheoryEdit.isChecked) "Theory" else "Lab"
-    
-    // Create updated course using copy()
-    val updatedCourse = currentCourse.copy(
-        courseName = courseName,
-        courseCode = courseCode,
-        creditHours = creditHours,
-        courseType = courseType
-    )
-    
-    lifecycleScope.launch {
-        val result = courseRepository.updateCourse(updatedCourse)
-        
-        if (result.isSuccess) {
-            Toast.makeText(context, "Course updated successfully", Toast.LENGTH_SHORT).show()
-            findNavController().navigateUp()
-        }
-    }
-}
-```
-
----
-
-### 4. DELETE - Removing a Course
-**File:** `CourseRepository.kt` → `deleteCourse()`
-
-```kotlin
-suspend fun deleteCourse(courseId: String): Result<Unit> {
-    return try {
-        if (courseId.isEmpty()) {
-            return Result.failure(Exception("Course ID cannot be empty"))
-        }
-        
-        // Check if course exists
-        val snapshot = coursesRef.child(courseId).get().await()
-        if (!snapshot.exists()) {
-            return Result.failure(Exception("Course not found"))
-        }
-        
-        // Delete from Firebase
-        coursesRef.child(courseId).removeValue().await()
-        
-        Result.success(Unit)
-    } catch (e: Exception) {
-        Result.failure(Exception("Failed to delete course: ${e.message}", e))
-    }
-}
-```
-
-**How it's called in HomeFragment:**
-```kotlin
-private fun deleteCourse(course: Course) {
-    lifecycleScope.launch {
-        val result = courseRepository.deleteCourse(course.id)
-        
-        if (result.isSuccess) {
-            Toast.makeText(context, "Course deleted successfully", Toast.LENGTH_SHORT).show()
-        } else {
-            Toast.makeText(context, "Failed to delete", Toast.LENGTH_LONG).show()
-        }
-    }
-}
-```
+All operations use callbacks to report **success** or **error** back to the UI so the fragments can show `Toast` messages and update buttons or navigation.
 
 ---
 
 ## Delete Confirmation Dialog
 
-**File:** `HomeFragment.kt` → `showDeleteConfirmationDialog()`
+**File:** `HomeFragment.java` → `showDeleteConfirmationDialog()`  
+`HomeFragment.java` uses `AlertDialog.Builder` to confirm before deleting:
 
-```kotlin
-private fun showDeleteConfirmationDialog(course: Course) {
-    AlertDialog.Builder(requireContext())
-        .setTitle("Delete Course")                           // Dialog title
-        .setMessage("Are you sure you want to delete \"${course.courseName}\"?\n\nThis action cannot be undone.")
-        .setPositiveButton("Delete") { _, _ ->               // Confirm button
-            deleteCourse(course)                             // Actually delete
-        }
-        .setNegativeButton("Cancel") { _, _ ->               // Cancel button
-            // Do nothing, just dismiss
-        }
-        .setIcon(android.R.drawable.ic_dialog_alert)         // Warning icon
-        .show()                                              // Display dialog
-}
-```
+- Shows the course name in the message.
+- Has **Delete** and **Cancel** buttons.
+- Calls the repository delete method only when the user confirms.
 
-**When is it shown?**
-```kotlin
-// In CourseAdapter setup (HomeFragment)
-courseAdapter = CourseAdapter(
-    onDeleteClick = { course ->
-        showDeleteConfirmationDialog(course)  // Called when delete button clicked
-    }
-)
-```
+The dialog is triggered from `CourseAdapter` when the Delete button on a course item is tapped.
 
 **Dialog Flow:**
 ```
@@ -1063,142 +821,35 @@ android {
 | `fragment_edit_course.xml` | `FragmentEditCourseBinding` |
 | `item_course.xml` | `ItemCourseBinding` |
 
-### Usage in Activity (MainActivity.kt)
-```kotlin
-class MainActivity : AppCompatActivity() {
-    private lateinit var binding: ActivityMainBinding  // Declare binding
-    
-    override fun onCreate(savedInstanceState: Bundle?) {
-        super.onCreate(savedInstanceState)
-        
-        // Inflate layout using binding
-        binding = ActivityMainBinding.inflate(layoutInflater)
-        setContentView(binding.root)  // Set content view to root of binding
-    }
-}
-```
+### Usage in Activity (MainActivity.java)
+- `ActivityMainBinding.inflate(getLayoutInflater())` is used to inflate `activity_main.xml`.
+- `setContentView(binding.getRoot())` sets the content view to the binding root.
 
-### Usage in Fragment (HomeFragment.kt)
-```kotlin
-class HomeFragment : Fragment() {
-    private var _binding: FragmentHomeBinding? = null
-    private val binding get() = _binding!!  // Non-null assertion
-    
-    override fun onCreateView(
-        inflater: LayoutInflater,
-        container: ViewGroup?,
-        savedInstanceState: Bundle?
-    ): View? {
-        _binding = FragmentHomeBinding.inflate(inflater, container, false)
-        return binding.root
-    }
-    
-    override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
-        // Access views using binding
-        binding.fabAddCourse.setOnClickListener { ... }
-        binding.recyclerViewCourses.adapter = courseAdapter
-        binding.tvEmptyState.visibility = View.GONE
-    }
-    
-    override fun onDestroyView() {
-        super.onDestroyView()
-        _binding = null  // Prevent memory leaks
-    }
-}
-```
+### Usage in Fragment (HomeFragment.java)
+- `FragmentHomeBinding.inflate(inflater, container, false)` inflates `fragment_home.xml`.
+- A field like `private FragmentHomeBinding binding;` is used while the view exists.
+- In `onDestroyView()` the binding reference is cleared to avoid memory leaks.
 
-### Why `_binding` and `binding`?
-- `_binding` is nullable (`FragmentHomeBinding?`) - set to null in `onDestroyView()`
-- `binding` is non-null getter - safe to use between `onViewCreated()` and `onDestroyView()`
-- This pattern prevents memory leaks in Fragments
+### Why clear the binding?
+- Fragment views are destroyed and recreated; holding the binding after `onDestroyView()` can leak the view.
+- Clearing the binding in `onDestroyView()` ensures references are released correctly.
 
 ---
 
 ## RecyclerView & Adapter
 
-### CourseAdapter.kt - Complete Implementation
-```kotlin
-class CourseAdapter(
-    private val onEditClick: (Course) -> Unit,    // Callback for edit button
-    private val onDeleteClick: (Course) -> Unit   // Callback for delete button
-) : ListAdapter<Course, CourseAdapter.CourseViewHolder>(CourseDiffCallback()) {
+### CourseAdapter.java - Overview
+- Extends `ListAdapter<Course, CourseAdapter.CourseViewHolder>` for efficient list updates.
+- Uses view binding with `ItemCourseBinding` to bind each course card.
+- Exposes two listener interfaces:
+  - `OnEditClickListener` for the Edit button.
+  - `OnDeleteClickListener` for the Delete button.
 
-    // Called when RecyclerView needs a new ViewHolder
-    override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): CourseViewHolder {
-        val binding = ItemCourseBinding.inflate(
-            LayoutInflater.from(parent.context), 
-            parent, 
-            false
-        )
-        return CourseViewHolder(binding)
-    }
-
-    // Called to display data at specified position
-    override fun onBindViewHolder(holder: CourseViewHolder, position: Int) {
-        val course = getItem(position)  // Get course at position
-        holder.bind(course)              // Bind data to views
-    }
-
-    // ViewHolder - holds references to views in item_course.xml
-    inner class CourseViewHolder(
-        private val binding: ItemCourseBinding
-    ) : RecyclerView.ViewHolder(binding.root) {
-        
-        fun bind(course: Course) {
-            binding.apply {
-                // Set text values
-                tvCourseName.text = course.courseName
-                tvCourseCode.text = course.courseCode
-                tvCreditHours.text = "Credit Hours: ${course.creditHours}"
-                chipCourseType.text = course.courseType
-
-                // Set click listeners
-                btnEdit.setOnClickListener {
-                    onEditClick(course)  // Trigger callback
-                }
-
-                btnDelete.setOnClickListener {
-                    onDeleteClick(course)  // Trigger callback
-                }
-            }
-        }
-    }
-
-    // DiffUtil for efficient updates
-    private class CourseDiffCallback : DiffUtil.ItemCallback<Course>() {
-        // Check if items represent the same course (by ID)
-        override fun areItemsTheSame(oldItem: Course, newItem: Course): Boolean {
-            return oldItem.id == newItem.id
-        }
-
-        // Check if item contents are the same
-        override fun areContentsTheSame(oldItem: Course, newItem: Course): Boolean {
-            return oldItem == newItem  // Uses data class equals()
-        }
-    }
-}
-```
-
-### Setting up RecyclerView in HomeFragment
-```kotlin
-private fun setupRecyclerView() {
-    // Create adapter with callbacks
-    courseAdapter = CourseAdapter(
-        onEditClick = { course ->
-            navigateToEditCourse(course)
-        },
-        onDeleteClick = { course ->
-            showDeleteConfirmationDialog(course)
-        }
-    )
-    
-    // Configure RecyclerView
-    binding.recyclerViewCourses.apply {
-        adapter = courseAdapter
-        layoutManager = LinearLayoutManager(context)  // Vertical list
-    }
-}
-```
+### Setting up RecyclerView in HomeFragment.java
+- `HomeFragment.java` creates a `CourseAdapter` instance, passing implementations of the edit and delete listeners.
+- The RecyclerView:
+  - Uses `LinearLayoutManager` for a vertical list.
+  - Calls `courseAdapter.submitList(courses)` when course data changes.
 
 ### ListAdapter vs RecyclerView.Adapter
 | Feature | ListAdapter | RecyclerView.Adapter |
@@ -1581,13 +1232,13 @@ if (creditHours == null || creditHours <= 0) {
 
 | Component | File | Purpose |
 |-----------|------|---------|
-| Main Activity | `MainActivity.kt` | App entry point, Firebase init, Navigation setup |
-| Home Screen | `HomeFragment.kt` | Display course list, FAB, empty state |
-| Add Course | `AddCourseFragment.kt` | Form to add new course |
-| Edit Course | `EditCourseFragment.kt` | Form to edit existing course |
-| Course Model | `Course.kt` | Data class for course entity |
-| Repository | `CourseRepository.kt` | Firebase CRUD operations |
-| Adapter | `CourseAdapter.kt` | RecyclerView adapter for course list |
+| Main Activity | `MainActivity.java` | App entry point, Firebase init, navigation setup |
+| Home Screen | `HomeFragment.java` | Display course list, FAB, empty state |
+| Add Course | `AddCourseFragment.java` | Form to add new course |
+| Edit Course | `EditCourseFragment.java` | Form to edit existing course |
+| Course Model | `Course.java` | Data model for course entity |
+| Repository | `CourseRepository.java` | Firebase CRUD operations |
+| Adapter | `CourseAdapter.java` | RecyclerView adapter for course list |
 | Colors | `colors.xml` | Color definitions |
 | Theme | `themes.xml` | App theme and styling |
 | Navigation | `mobile_navigation.xml` | Navigation graph |
