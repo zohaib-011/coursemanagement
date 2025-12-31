@@ -1,0 +1,30 @@
+{
+  "project_info": {
+    "project_number": "517485035226",
+    "firebase_url": "https://coursemanagement-c9024-default-rtdb.firebaseio.com",
+    "project_id": "coursemanagement-c9024",
+    "storage_bucket": "coursemanagement-c9024.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:517485035226:android:415b3f300cce08ae8c6fe3",
+        "android_client_info": {
+          "package_name": "com.example.coursemanagement"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBFhspsVYivkmX7A223X_SVt9qPK3grhTE"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

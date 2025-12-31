@@ -1,0 +1,44 @@
+<?xml version="1.0" encoding="utf-8"?>
+<navigation xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:id="@+id/mobile_navigation"
+    app:startDestination="@+id/navigation_home">
+
+    <fragment
+        android:id="@+id/navigation_home"
+        android:name="com.example.coursemanagement.ui.home.HomeFragment"
+        android:label="Course Managementt"
+        tools:layout="@layout/fragment_home" />
+
+    <fragment
+        android:id="@+id/addCourseFragment"
+        android:name="com.example.coursemanagement.ui.AddCourseFragment"
+        android:label="Add Course"
+        tools:layout="@layout/fragment_add_course" />
+
+    <fragment
+        android:id="@+id/editCourseFragment"
+        android:name="com.example.coursemanagement.ui.EditCourseFragment"
+        android:label="Edit Course"
+        tools:layout="@layout/fragment_edit_course">
+        <argument
+            android:name="courseId"
+            app:argType="string" />
+        <argument
+            android:name="courseName"
+            app:argType="string" />
+        <argument
+            android:name="courseCode"
+            app:argType="string" />
+        <argument
+            android:name="creditHours"
+            app:argType="integer" />
+        <argument
+            android:name="courseType"
+            app:argType="string" />
+        <argument
+            android:name="timestamp"
+            app:argType="long" />
+    </fragment>
+</navigation>
